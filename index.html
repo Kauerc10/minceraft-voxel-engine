@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft 1.20.1 - Java Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --mc-font: 'VT323', monospace;
+      --gui-bg: #c6c6c6;
+      --gui-border-light: #ffffff;
+      --gui-border-dark: #555555;
+      --slot-bg: #8b8b8b;
+      --slot-border-dark: #373737;
+      --slot-border-light: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-drag: none;
+      image-rendering: pixelated;
+      font-smooth: never;
+      -webkit-font-smoothing: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: var(--mc-font);
+      color: #fff;
+    }
+
+    #game-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 1;
+    }
+
+    #screen-tint {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      transition: background 0.15s ease;
+    }
+
+    /* ================= ADVANCEMENT / TOAST BANNER ================= */
+    #advancement-toast {
+      position: fixed;
+      top: 16px;
+      right: -360px;
+      width: 320px;
+      background: #212121;
+      border: 3px solid #000;
+      box-shadow: inset 3px 3px 0 #555, inset -3px -3px 0 #111;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 80;
+      transition: right 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+      pointer-events: none;
+    }
+    #advancement-toast.show {
+      right: 16px;
+    }
+    .adv-header {
+      color: #ffff55;
+      font-size: 20px;
+      text-shadow: 2px 2px 0 #3f3f00;
+      line-height: 1;
+    }
+    .adv-title {
+      color: #ffffff;
+      font-size: 22px;
+      text-shadow: 2px 2px 0 #222;
+      line-height: 1.1;
+    }
+
+    /* ================= TITLE SCREEN (Exact Match to Screenshot 2) ================= */
+    #title-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4vh 16px 8px;
+    }
+
+    #title-screen.hidden {
+      display: none !important;
+    }
+
+    .logo-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 2vh;
+    }
+
+    #logo-canvas {
+      width: min(820px, 92vw);
+      height: auto;
+      image-rendering: pixelated;
+    }
+
+    .splash-text {
+      position: absolute;
+      right: -40px;
+      bottom: 18px;
+      color: #ffff00;
+      font-size: clamp(24px, 2.8vw, 36px);
+      text-shadow: 3px 3px 0 #3f3f00;
+      transform: rotate(-20deg);
+      animation: splashPulse 0.52s infinite alternate ease-in-out;
+      pointer-events: none;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes splashPulse {
+      from { transform: rotate(-20deg) scale(1.0); }
+      to   { transform: rotate(-20deg) scale(1.09); }
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: min(580px, 92vw);
+      margin-bottom: 7vh;
+    }
+
+    .menu-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* Authentic Minecraft Stone Button */
+    .mc-btn {
+      position: relative;
+      height: 54px;
+      background-color: #6f6f6f;
+      background-image: var(--btn-stone-pattern);
+      background-size: 64px 64px;
+      border: 3px solid #000000;
+      box-shadow:
+        inset 3px 3px 0 #aaaaaa,
+        inset -3px -5px 0 #484848;
+      color: #e0e0e0;
+      font-family: var(--mc-font);
+      font-size: 28px;
+      text-shadow: 2px 2px 0 #383838;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 0 14px 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .mc-btn:hover {
+      border-color: #ffffff;
+      box-shadow:
+        inset 3px 3px 0 #b8c2f0,
+        inset -3px -5px 0 #4d5682;
+      color: #ffffa0;
+      filter: brightness(1.08);
+    }
+
+    .mc-btn:active {
+      box-shadow:
+        inset 3px 3px 0 #484848,
+        inset -3px -3px 0 #aaaaaa;
+      padding-top: 3px;
+    }
+
+    .mc-btn.icon-btn {
+      flex: 0 0 54px;
+      width: 54px;
+      padding: 0;
+    }
+
+    .btn-pixel-icon {
+      width: 34px;
+      height: 34px;
+      image-rendering: pixelated;
+    }
+
+    .title-footer {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 26px;
+      color: #ffffff;
+      text-shadow: 2px 2px 0 #383838;
+      padding: 0 4px;
+    }
+
+    /* ================= HUD ================= */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #hud.hidden {
+      display: none !important;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.92);
+    }
+    #crosshair::before {
+      top: 10px; left: 0; width: 22px; height: 2px;
+    }
+    #crosshair::after {
+      top: 0; left: 10px; width: 2px; height: 22px;
+    }
+
+    #debug-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .debug-line {
+      background: rgba(35, 35, 35, 0.55);
+      padding: 2px 8px;
+      width: fit-content;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    /* Survival Objective Tracker */
+    #quest-tracker {
+      position: absolute;
+      top: 90px;
+      left: 10px;
+      background: rgba(20, 20, 20, 0.72);
+      border: 2px solid #000;
+      box-shadow: inset 2px 2px 0 #555;
+      padding: 8px 12px;
+      font-size: 20px;
+      max-width: 310px;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    #controls-pill {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(20, 20, 20, 0.65);
+      border: 2px solid #000;
+      padding: 6px 10px;
+      font-size: 18px;
+      color: #e0e0e0;
+      text-shadow: 2px 2px 0 #000;
+      line-height: 1.25;
+    }
+
+    #hud-bottom {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 454px;
+    }
+
+    #item-action-label {
+      margin-bottom: 6px;
+      font-size: 24px;
+      color: #fff;
+      text-shadow: 2px 2px 0 #000;
+      min-height: 26px;
+      transition: opacity 0.4s;
+    }
+
+    .status-bars-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      padding: 0 2px;
+    }
+
+    .bar-cluster {
+      display: flex;
+      gap: 2px;
+      height: 18px;
+      align-items: center;
+    }
+
+    .stat-icon {
+      width: 18px;
+      height: 18px;
+      image-rendering: pixelated;
+    }
+
+    #xp-bar-container {
+      position: relative;
+      width: 100%;
+      height: 10px;
+      background: #1e1e1e;
+      border: 2px solid #000;
+      margin-bottom: 4px;
+    }
+
+    #xp-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #55ff55, #aaff00);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.45);
+    }
+
+    #xp-level {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #80ff20;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000;
+    }
+
+    #hotbar {
+      display: flex;
+      background: rgba(34, 34, 34, 0.85);
+      border: 3px solid #000;
+      box-shadow: inset 0 0 0 2px #585858;
+      padding: 2px;
+      gap: 2px;
+      position: relative;
+    }
+
+    #offhand-hud-wrap {
+      position: absolute;
+      left: -58px;
+      bottom: 0;
+      background: rgba(34, 34, 34, 0.85);
+      border: 3px solid #000;
+      box-shadow: inset 0 0 0 2px #585858;
+      padding: 2px;
+    }
+
+    .hud-slot {
+      width: 46px;
+      height: 46px;
+      background: rgba(139, 139, 139, 0.35);
+      border-top: 3px solid #373737;
+      border-left: 3px solid #373737;
+      border-right: 3px solid #8e8e8e;
+      border-bottom: 3px solid #8e8e8e;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hud-slot.active {
+      outline: 4px solid #ffffff;
+      box-shadow: 0 0 0 6px #000000;
+      z-index: 3;
+      background: rgba(190, 190, 190, 0.45);
+    }
+
+    /* ================= CLASSIC MINECRAFT INVENTORY GUI (Images 2 & 3) ================= */
+    #modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    #modal-backdrop.hidden {
+      display: none !important;
+    }
+
+    .mc-window {
+      background: var(--gui-bg);
+      border: 3px solid #000;
+      box-shadow:
+        inset 4px 4px 0 var(--gui-border-light),
+        inset -4px -4px 0 var(--gui-border-dark),
+        0 16px 40px rgba(0,0,0,0.65);
+      padding: 16px;
+      color: #3f3f3f;
+      position: relative;
+    }
+
+    .mc-window-title {
+      font-size: 24px;
+      color: #3f3f3f;
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+
+    .inv-top-section {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .armor-column {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #player-preview-box {
+      width: 112px;
+      height: 190px;
+      background: #000000;
+      border-top: 3px solid #373737;
+      border-left: 3px solid #373737;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #player-preview-canvas {
+      width: 112px;
+      height: 190px;
+      display: block;
+    }
+
+    .offhand-column {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 190px;
+    }
+
+    .crafting-area {
+      display: flex;
+      flex-direction: column;
+      margin-left: 12px;
+      flex: 1;
+    }
+
+    .crafting-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .craft-grid-2x2 {
+      display: grid;
+      grid-template-columns: repeat(2, 46px);
+      grid-template-rows: repeat(2, 46px);
+      gap: 2px;
+    }
+
+    .craft-grid-3x3 {
+      display: grid;
+      grid-template-columns: repeat(3, 46px);
+      grid-template-rows: repeat(3, 46px);
+      gap: 2px;
+    }
+
+    .craft-arrow {
+      font-size: 34px;
+      color: #7a7a7a;
+      text-shadow: 1px 1px 0 #fff;
+      padding: 0 4px;
+    }
+
+    .recipe-book-row {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gui-small-btn {
+      height: 36px;
+      padding: 0 10px;
+      background: #c6c6c6;
+      border: 2px solid #000;
+      box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555;
+      font-family: var(--mc-font);
+      font-size: 20px;
+      color: #222;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .gui-small-btn:hover {
+      border-color: #fff;
+      background: #d8d8d8;
+    }
+
+    #furnace-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-left: 12px;
+      flex: 1;
+    }
+
+    .furnace-layout {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 6px;
+    }
+
+    .furnace-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .furnace-flame {
+      font-size: 22px;
+      height: 24px;
+      line-height: 24px;
+      filter: grayscale(1);
+      transition: filter 0.2s;
+    }
+    .furnace-flame.lit {
+      filter: grayscale(0) drop-shadow(0 0 4px #ff8800);
+    }
+
+    .inv-grid-main {
+      display: grid;
+      grid-template-columns: repeat(9, 46px);
+      grid-template-rows: repeat(3, 46px);
+      gap: 2px;
+      margin-bottom: 10px;
+    }
+
+    .inv-grid-hotbar {
+      display: grid;
+      grid-template-columns: repeat(9, 46px);
+      grid-template-rows: 46px;
+      gap: 2px;
+    }
+
+    .mc-slot {
+      width: 46px;
+      height: 46px;
+      background: var(--slot-bg);
+      border-top: 3px solid var(--slot-border-dark);
+      border-left: 3px solid var(--slot-border-dark);
+      border-right: 3px solid var(--slot-border-light);
+      border-bottom: 3px solid var(--slot-border-light);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mc-slot:hover {
+      background: #a8a8a8;
+    }
+
+    .mc-slot.output-slot {
+      width: 56px;
+      height: 56px;
+    }
+
+    .slot-placeholder {
+      width: 32px;
+      height: 32px;
+      opacity: 0.45;
+      pointer-events: none;
+      image-rendering: pixelated;
+    }
+
+    .slot-icon {
+      width: 36px;
+      height: 36px;
+      image-rendering: pixelated;
+      pointer-events: none;
+      filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.35));
+    }
+
+    .slot-count {
+      position: absolute;
+      right: 3px;
+      bottom: -2px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow:
+        2px 2px 0 #222222,
+        -1px -1px 0 #222222,
+        1px -1px 0 #222222,
+        -1px 1px 0 #222222;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    .slot-durability {
+      position: absolute;
+      bottom: 3px;
+      left: 5px;
+      right: 5px;
+      height: 4px;
+      background: #000000;
+      pointer-events: none;
+    }
+
+    .slot-durability-fill {
+      height: 2px;
+      background: #00ff00;
+    }
+
+    /* Recipe Book & Creative Catalog Drawer */
+    #side-drawer {
+      width: 280px;
+      max-height: 450px;
+      display: flex;
+      flex-direction: column;
+    }
+    #side-drawer.hidden {
+      display: none !important;
+    }
+    #drawer-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      overflow-y: auto;
+      padding: 4px;
+      max-height: 360px;
+    }
+    .recipe-card {
+      background: #8b8b8b;
+      border-top: 2px solid #fff;
+      border-left: 2px solid #fff;
+      border-right: 2px solid #373737;
+      border-bottom: 2px solid #373737;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+    }
+    .recipe-card:hover {
+      background: #a5c48b;
+    }
+
+    #cursor-item {
+      position: fixed;
+      width: 44px;
+      height: 44px;
+      pointer-events: none;
+      z-index: 100;
+      transform: translate(-50%, -50%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #mc-tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 110;
+      background: rgba(16, 0, 16, 0.94);
+      border: 2px solid #280064;
+      box-shadow: 0 0 0 2px #100010, inset 0 0 0 1px #5000ff;
+      padding: 6px 10px;
+      color: #ffffff;
+      font-size: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 290px;
+    }
+    .tt-title { color: #ffffff; text-shadow: 2px 2px 0 #222; }
+    .tt-sub { color: #a8a8a8; font-size: 18px; }
+    .tt-stat { color: #55ff55; font-size: 18px; }
+
+    /* Modals */
+    #death-screen, #options-modal, #world-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(90, 0, 0, 0.72);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+    #options-modal, #world-modal {
+      background: rgba(0, 0, 0, 0.78);
+    }
+    #death-screen.hidden, #options-modal.hidden, #world-modal.hidden {
+      display: none !important;
+    }
+    .death-title {
+      font-size: 64px;
+      color: #ff4444;
+      text-shadow: 4px 4px 0 #2a0000;
+    }
+    .modal-box {
+      width: min(560px, 92vw);
+      background: rgba(25, 25, 25, 0.94);
+      border: 3px solid #000;
+      box-shadow: inset 3px 3px 0 #555, inset -3px -3px 0 #222;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 22px;
+    }
+    .mc-input {
+      background: #000;
+      border: 2px solid #a0a0a0;
+      color: #fff;
+      font-family: var(--mc-font);
+      font-size: 24px;
+      padding: 8px 12px;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  <div id="screen-tint"></div>
+
+  <!-- Advancement Popup -->
+  <div id="advancement-toast">
+    <img id="adv-icon" class="slot-icon" src="" alt="" />
+    <div>
+      <div class="adv-header">Advancement Made!</div>
+      <div class="adv-title" id="adv-text">Getting Wood</div>
+    </div>
+  </div>
+
+  <!-- ================= TITLE SCREEN (Exact Match to Screenshot 2) ================= -->
+  <div id="title-screen">
+    <div class="logo-wrapper">
+      <canvas id="logo-canvas" width="820" height="205"></canvas>
+      <div class="splash-text" id="splash-text">It came from space.</div>
+    </div>
+
+    <div class="menu-buttons">
+      <button class="mc-btn" id="btn-singleplayer">Singleplayer</button>
+      <button class="mc-btn" id="btn-multiplayer">Multiplayer</button>
+      <button class="mc-btn" id="btn-realms">Minecraft Realms</button>
+      <div class="menu-row" style="margin-top: 12px;">
+        <button class="mc-btn icon-btn" id="btn-lang" title="Language / Idioma">
+          <img id="icon-globe" class="btn-pixel-icon" alt="lang" />
+        </button>
+        <button class="mc-btn" id="btn-options">Options...</button>
+        <button class="mc-btn" id="btn-quit">Quit Game</button>
+        <button class="mc-btn icon-btn" id="btn-a11y" title="Accessibility / Hora do Dia">
+          <img id="icon-a11y" class="btn-pixel-icon" alt="a11y" />
+        </button>
+      </div>
+    </div>
+
+    <div class="title-footer">
+      <span>Minecraft 1.20.1</span>
+      <span>Copyright Mojang AB. Do not distribute!</span>
+    </div>
+  </div>
+
+  <!-- ================= SINGLEPLAYER WORLD CREATION / MODE SELECTION ================= -->
+  <div id="world-modal" class="hidden">
+    <div class="modal-box">
+      <div style="font-size: 32px; text-align: center; margin-bottom: 4px;">Create New World</div>
+      <div class="field-row">
+        <label>Game Mode (Experiência de Jogo):</label>
+        <button class="mc-btn" id="btn-toggle-gamemode">Game Mode: Survival (Do Zero)</button>
+      </div>
+      <div id="gamemode-desc" style="font-size: 20px; color: #bbb; line-height: 1.2;">
+        Sobrevivência Real: Comece de mãos vazias, quebre árvores, crie Tábuas e Bancada de Trabalho 3x3, minere Pedra/Ferro/Diamante, asse comida na Fornalha e sobreviva aos Mobs!
+      </div>
+      <div class="field-row">
+        <label>World Seed:</label>
+        <input type="text" id="seed-input" class="mc-input" value="cherry-valley-1201" />
+      </div>
+      <div class="menu-row" style="margin-top: 8px;">
+        <button class="mc-btn" id="btn-create-world-confirm">Play Selected World</button>
+        <button class="mc-btn" id="btn-create-world-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= OPTIONS MODAL ================= -->
+  <div id="options-modal" class="hidden">
+    <div class="modal-box">
+      <div style="font-size: 32px; text-align: center;">Options...</div>
+      <div class="field-row">
+        <label>FOV: <span id="lbl-fov">75</span>°</label>
+        <input type="range" id="opt-fov" min="60" max="110" value="75" />
+      </div>
+      <div class="field-row">
+        <label>Render Distance (Chunks): <span id="lbl-rd">4</span></label>
+        <input type="range" id="opt-rd" min="2" max="6" value="4" />
+      </div>
+      <div class="field-row">
+        <label>Sound Volume: <span id="lbl-vol">80</span>%</label>
+        <input type="range" id="opt-vol" min="0" max="100" value="80" />
+      </div>
+      <div class="field-row">
+        <label>Clima / Horário:</label>
+        <div class="menu-row">
+          <button class="mc-btn" id="btn-time-day">Meio-dia</button>
+          <button class="mc-btn" id="btn-time-sunset">Pôr do Sol</button>
+          <button class="mc-btn" id="btn-time-night">Meia-noite</button>
+        </div>
+      </div>
+      <button class="mc-btn" id="btn-options-done">Done</button>
+    </div>
+  </div>
+
+  <!-- ================= DEATH SCREEN ================= -->
+  <div id="death-screen" class="hidden">
+    <div class="death-title">You Died!</div>
+    <div id="death-reason" style="font-size: 28px; text-shadow: 2px 2px 0 #000;">Steve foi derrotado</div>
+    <div class="menu-buttons" style="width: 380px;">
+      <button class="mc-btn" id="btn-respawn">Respawn</button>
+      <button class="mc-btn" id="btn-death-title">Title Screen</button>
+    </div>
+  </div>
+
+  <!-- ================= IN-GAME HUD ================= -->
+  <div id="hud" class="hidden">
+    <div id="crosshair"></div>
+
+    <div id="debug-overlay">
+      <div class="debug-line" id="dbg-fps">Minecraft 1.20.1 (60 fps)</div>
+      <div class="debug-line" id="dbg-pos">XYZ: 0.0 / 30.0 / 0.0 | Biome: Cherry Grove</div>
+      <div class="debug-line" id="dbg-target">Looking at: Air</div>
+    </div>
+
+    <div id="quest-tracker">
+      <div style="color:#ffff55; margin-bottom:2px;">🎯 Guia de Progressão:</div>
+      <div id="quest-step">1. Quebre um tronco de árvore (Segure Click Esq)</div>
+    </div>
+
+    <div id="controls-pill">
+      <b>[WASD]</b> Mover | <b>[Espaço]</b> Pular (2x Voar no Criativo) | <b>[Shift]</b> Agachar/Descer<br/>
+      <b>[Click Esq]</b> Minerar / Atacar Mob | <b>[Click Dir]</b> Colocar / Usar Bancada / Comer / Arco<br/>
+      <b>[E]</b> Inventário & Crafting | <b>[Q]</b> Dropar Item 3D | <b>[F]</b> Mão Secundária | <b>[ESC]</b> Menu
+    </div>
+
+    <div id="hud-bottom">
+      <div id="item-action-label"></div>
+
+      <div class="status-bars-row">
+        <div class="bar-cluster" id="armor-bar"></div>
+        <div class="bar-cluster" id="air-bar"></div>
+      </div>
+
+      <div class="status-bars-row">
+        <div class="bar-cluster" id="health-bar"></div>
+        <div class="bar-cluster" id="hunger-bar"></div>
+      </div>
+
+      <div id="xp-bar-container">
+        <div id="xp-bar-fill"></div>
+        <div id="xp-level">0</div>
+      </div>
+
+      <div id="hotbar">
+        <div id="offhand-hud-wrap"></div>
+        <div id="hotbar-slots" style="display:flex; gap:2px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= INVENTORY / CRAFTING / FURNACE / CREATIVE MODAL ================= -->
+  <div id="modal-backdrop" class="hidden">
+    <!-- Recipe Book & Creative Drawer -->
+    <div id="side-drawer" class="mc-window">
+      <div style="display:flex; gap:4px; margin-bottom:8px;">
+        <button class="gui-small-btn" id="tab-recipes" style="flex:1;">📗 Receitas</button>
+        <button class="gui-small-btn" id="tab-creative" style="flex:1;">✨ Criativo</button>
+      </div>
+      <div class="mc-window-title" id="drawer-title" style="font-size:20px;">Clique para Craftar:</div>
+      <div id="drawer-grid"></div>
+      <button class="gui-small-btn" id="btn-equip-screenshot-kit" style="margin-top:8px; width:100%;">
+        💎 Carregar Kit da Foto 3
+      </button>
+    </div>
+
+    <!-- Main Inventory Window -->
+    <div class="mc-window" id="inventory-window">
+      <div class="inv-top-section">
+        <!-- 4 Armor Slots -->
+        <div class="armor-column" id="armor-slots-container"></div>
+
+        <!-- 3D Live Interactive Player Preview -->
+        <div id="player-preview-box">
+          <canvas id="player-preview-canvas" width="112" height="190"></canvas>
+        </div>
+
+        <!-- Shield / Offhand Slot -->
+        <div class="offhand-column" id="offhand-slot-container"></div>
+
+        <!-- Crafting Section (2x2 or 3x3) -->
+        <div class="crafting-area" id="crafting-panel">
+          <div class="mc-window-title" id="crafting-title">Handwerk</div>
+          <div class="crafting-row">
+            <div id="craft-grid-container" class="craft-grid-2x2"></div>
+            <div class="craft-arrow">➔</div>
+            <div id="craft-output-container"></div>
+          </div>
+          <div class="recipe-book-row">
+            <button class="gui-small-btn" id="recipe-book-btn" title="Alternar Livro de Receitas / Catálogo">📗</button>
+            <span style="font-size:18px; color:#444;" id="craft-mode-hint">Grid 2x2</span>
+          </div>
+        </div>
+
+        <!-- Furnace Section -->
+        <div id="furnace-panel">
+          <div class="mc-window-title">Fornalha (Smelting)</div>
+          <div class="furnace-layout">
+            <div class="furnace-left">
+              <div id="furnace-input-container"></div>
+              <div class="furnace-flame" id="furnace-flame">🔥</div>
+              <div id="furnace-fuel-container"></div>
+            </div>
+            <div class="craft-arrow" id="furnace-progress">➔</div>
+            <div id="furnace-output-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3x9 Main Inventory -->
+      <div class="inv-grid-main" id="main-inv-container"></div>
+
+      <!-- 1x9 Hotbar inside Inventory -->
+      <div class="inv-grid-hotbar" id="hotbar-inv-container"></div>
+    </div>
+  </div>
+
+  <div id="cursor-item"></div>
+  <div id="mc-tooltip"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
